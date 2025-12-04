@@ -7,20 +7,79 @@ std::ostream& operator<<(std::ostream& out, const TFormula& form)
 	return out;
 }
 
+std::istream& operator>>(std::istream& in, TFormula& form)
+{
+    const int MAX = 100;
+    char buffer[MAX];
+    int i = 0;
+    char c;
+    delete[] form.str;
+    while (in.get(c) && c != '\n' && i < MAX - 1) {
+        buffer[i] = c;
+        i++;
+    }
+    if (i == MAX - 1) {
+        buffer[MAX - 1] = '\0';
+    }
+    else {
+        buffer[i] = '\0';
+    }
+    if (i > 0) {
+        form.str = new char[i + 1];
+        for (int j = 0; j <= i; j++) {
+            form.str[j] = buffer[j];
+        }
+    }
+    else {
+        form.str = nullptr;
+    }
+    return in;
+}
+
 bool isdigit(char c)
 {
+    bool res = true;
     if ((c != '1') && (c != '2') && (c != '3') && (c != '4') &&
         (c != '5') && (c != '6') && (c != '7') && (c != '8') &&
         (c != '9') && (c != '0')) {
-        return false;
+        res =  false;
     }
-    return true;
+    return res;
+}
+
+bool isop(char c)
+{
+    bool res = false;
+    if ((c == '+') || (c == '-') || (c == '*') || (c == '/')){
+        res = true;
+    }
+    return res;
+}
+
+bool isbracket(char c)
+{
+    bool res = false;
+    if ((c == '(') || (c == ')')) {
+        res = true;
+    }
+    return res;
+}
+
+int priority(char op)
+{
+        if (op == '+' || op == '-') return 1;
+        if (op == '*' || op == '/') return 2;
+        if (op == '^') return 3;
+        return 0;
 }
 
 TFormula::TFormula(char* _str)
 {
-    str = new char[strlen(_str) + 1];
-    strcpy(str, _str);
+    size_t len = strlen(_str);
+    str = new char[len + 1];
+    for (size_t i = 0; i <= len; i++) {
+        str[i] = _str[i];
+    }
 }
 
 TFormula::~TFormula()
@@ -30,167 +89,254 @@ TFormula::~TFormula()
 
 TFormula::TFormula(const TFormula& _str)
 {
-    str = new char[strlen(_str.str) + 1];
-    strcpy(str, _str.str);
+    if (_str.str) {
+        size_t len = strlen(_str.str);
+        str = new char[len + 1];
+        for (size_t i = 0; i <= len; i++) {
+            str[i] = _str.str[i];
+        }
+    }
+    else {
+        str = nullptr;
+    }
 }
 
 TFormula TFormula::operator=(const TFormula& _str)
 {
     if (this != &_str) {
-        if (strlen(str) != strlen(_str.str)) {
-            delete[] str;
-            str = new char[strlen(_str.str) + 1];
+        delete[] str;
+
+        if (_str.str) {
+            size_t len = strlen(_str.str);
+            str = new char[len + 1];
+            for (size_t i = 0; i < len; i++) {
+                str[i] = _str.str[i];
+            }
+        }
+        else {
+            str = nullptr;
         }
     }
-    strcpy(str, _str.str);
     return *this;
+}
+
+TFormula::TFormula():str(nullptr) {}
+
+int TFormula::checkbrackets(int arr[], int& n)
+{
+    n = 0;
+    if (!str) {
+        return n;
+    }
+    TDynamicStack<int> stack;
+    int len = strlen(str);
+
+    for (int i = 0; i < len; i++) {
+        if (str[i] == '(') {
+            stack.Push(i);
+        }
+        else if (str[i] == ')') {
+            if (stack.IsEmpty()) {
+                arr[n++] = i;
+            }
+            else {
+                stack.Pop();
+            }
+        }
+    }
+    while (!stack.IsEmpty()) {
+        arr[n++] = stack.Pop();
+    }
+    return n;
 }
 
 char* TFormula::Postfix()
 {
-    TStack<char> st;
-    // Увеличиваем буфер для безопасности
-    char* result = new char[strlen(str) * 3 + 10];  // было *2+1, стало *3+10
-    int j = 0;
+    int errorPositions[100];
+    int errorCount = 0;
+    if (checkbrackets(errorPositions, errorCount) != 0) {
+        int expt = 1;
+        throw expt;
+    }
+    int len = strlen(str);
+    TDynamicStack<char> st(len + 1);
+    int maxSize = len * 3 + 1;
+    char* result = new char[maxSize];
+    int resultIndex = 0;
+    bool predetoop = false;
 
-    for (int i = 0; str[i] != '\0'; i++) {
+    for (int i = 0; i < len; i++) {
         char c = str[i];
-
-        // Добавляем проверку на переполнение буфера
-        if (j >= strlen(str) * 3 + 5) {
-            break; // предотвращаем переполнение
-        }
+        if (c == ' ') continue;
 
         if (isdigit(c) || c == '.') {
-            while ((isdigit(str[i]) || str[i] == '.') && j < strlen(str) * 3 + 5) {
-                result[j++] = str[i++];
+            bool tochka_bila = (c == '.');
+            bool cifra_bila = isdigit(c);
+            while (i < len && (isdigit(str[i]) || str[i] == '.')) {
+                if (resultIndex >= maxSize - 1) {
+                    delete[] result;
+                    int expt = 5;
+                    throw expt;
+                }
+
+                if (str[i] == '.') {
+                    if (tochka_bila) {
+                        delete[] result;
+                        int expt = 2;
+                        throw expt;
+                    }
+                    tochka_bila = true;
+                }
+                else {
+                    cifra_bila = true;
+                }
+
+                result[resultIndex++] = str[i++];
             }
+            if (!cifra_bila) {
+                delete[] result;
+                int expt = 3;
+                throw expt;
+            }
+
+            if (resultIndex >= maxSize - 1) {
+                delete[] result;
+                int expt = 5;
+                throw expt;
+            }
+            result[resultIndex++] = ' ';
             i--;
-            if (j < strlen(str) * 3 + 5) {
-                result[j++] = ' ';
+            predetoop = false;
+        }
+        else if (isop(c)) {
+            if (c == '-' && (i == 0 || str[i - 1] == '(' || isop(str[i - 1]))) {
+                result[resultIndex++] = '0';
+                result[resultIndex++] = ' ';
+                while (!st.IsEmpty() && isop(st.Peek()) &&
+                    priority(st.Peek()) >= priority(c)) {
+                    if (resultIndex >= maxSize - 2) {
+                        delete[] result;
+                        int expt = 5;
+                        throw expt;
+                    }
+                    result[resultIndex++] = st.Pop();
+                    result[resultIndex++] = ' ';
+                }
+                st.Push(c);
+                predetoop = true;
+            }
+            else {
+                if (predetoop) {
+                    delete[] result;
+                    int expt = 6;
+                    throw expt;
+                }
+                while (!st.IsEmpty() && isop(st.Peek()) &&
+                    priority(st.Peek()) >= priority(c)) {
+                    if (resultIndex >= maxSize - 2) {
+                        delete[] result;
+                        int expt = 5;
+                        throw expt;
+                    }
+                    result[resultIndex++] = st.Pop();
+                    result[resultIndex++] = ' ';
+                }
+                st.Push(c);
+                predetoop = true;
             }
         }
         else if (c == '(') {
-            if (j < strlen(str) * 3 + 5) {
-                st.add(c);
-            }
+            st.Push(c);
         }
         else if (c == ')') {
-            while (!st.isempty() && st.peek() != '(' && j < strlen(str) * 3 + 5) {
-                result[j++] = st.peek();
-                if (j < strlen(str) * 3 + 5) {
-                    result[j++] = ' ';
+            while (!st.IsEmpty() && st.Peek() != '(') {
+                if (resultIndex >= maxSize - 2) {
+                    delete[] result;
+                    int expt = 5;
+                    throw expt;
                 }
-                st.udalit();
+                result[resultIndex++] = st.Pop();
+                result[resultIndex++] = ' ';
             }
-            if (!st.isempty() && st.peek() == '(') {
-                st.udalit();
+            if (!st.IsEmpty()) {
+                st.Pop();
             }
         }
-        else if (c == '+' || c == '-') {
-            while (!st.isempty() && st.peek() != '(' && j < strlen(str) * 3 + 5) {
-                result[j++] = st.peek();
-                if (j < strlen(str) * 3 + 5) {
-                    result[j++] = ' ';
-                }
-                st.udalit();
-            }
-            if (j < strlen(str) * 3 + 5) {
-                st.add(c);
-            }
-        }
-        else if (c == '*' || c == '/') {
-            while (!st.isempty() && (st.peek() == '*' || st.peek() == '/') && j < strlen(str) * 3 + 5) {
-                result[j++] = st.peek();
-                if (j < strlen(str) * 3 + 5) {
-                    result[j++] = ' ';
-                }
-                st.udalit();
-            }
-            if (j < strlen(str) * 3 + 5) {
-                st.add(c);
-            }
+        else {
+            delete[] result;
+            int expt = 4;
+            throw expt;
         }
     }
-
-    while (!st.isempty() && j < strlen(str) * 3 + 5) {
-        result[j++] = st.peek();
-        if (j < strlen(str) * 3 + 5) {
-            result[j++] = ' ';
+    while (!st.IsEmpty()) {
+        if (resultIndex >= maxSize - 2) {
+            delete[] result;
+            int expt = 5;
+            throw expt;
         }
-        st.udalit();
+        result[resultIndex++] = st.Pop();
+        result[resultIndex++] = ' ';
     }
-
-    // Гарантируем, что не выйдем за границы
-    if (j >= strlen(str) * 3 + 10) {
-        j = strlen(str) * 3 + 9;
+    if (resultIndex > 0) {
+        if (result[resultIndex - 1] == ' ') {
+            result[resultIndex - 1] = '\0';
+        }
+        else {
+            result[resultIndex] = '\0';
+        }
     }
-
-    result[j] = '\0';
+    else {
+        result[0] = '\0';
+    }
     return result;
 }
 
 double TFormula::calculate(int& r)
 {
     r = 0;
-    TStack<double> st;
+    char* pf = Postfix();
 
-    char* postfix = Postfix();
-    char token[100];
-    int tokenIndex = 0;
+    TDynamicStack<double> st(strlen(pf) + 1);
 
-    for (int i = 0; postfix[i] != '\0'; i++) {
-        char c = postfix[i];
+    for (int i = 0; i < strlen(pf); i++) {
+        if (pf[i] == ' ') continue;
 
-        if (isdigit(c) || c == '.') {
-            token[tokenIndex++] = c;
-        }
-        else if (c == ' ' && tokenIndex > 0) {
-            token[tokenIndex] = '\0';
-            st.add(atof(token));
-            tokenIndex = 0;
-        }
-        else if (c == '+' || c == '-' || c == '*' || c == '/') {
-            if (st.isempty()) {
-                r = -1;
-                delete[] postfix;
-                return 0;
-            }
-            double b = st.peek(); st.udalit();
+        if (isdigit(pf[i]) || pf[i] == '.') {
+            double n = 0;
+            double d = 1;
+            bool point = false;
 
-            if (st.isempty()) {
-                r = -1;
-                delete[] postfix;
-                return 0;
-            }
-            double a = st.peek(); st.udalit();
-
-            double res = 0;
-            if (c == '+') res = a + b;
-            else if (c == '-') res = a - b;
-            else if (c == '*') res = a * b;
-            else if (c == '/') {
-                if (b == 0) {
-                    r = -3;
-                    delete[] postfix;
-                    return 0;
+            while (i < strlen(pf) && (isdigit(pf[i]) || pf[i] == '.')) {
+                if (pf[i] == '.') {
+                    point = true;
                 }
-                res = a / b;
+                else if (!point) {
+                    n = n * 10 + (pf[i] - '0');
+                }
+                else {
+                    n = n + (pf[i] - '0') / (d * 10);
+                    d = d * 10;
+                }
+                i++;
             }
+            i--;
+            st.Push(n);
+        }
+        else if (isop(pf[i])) {
+            double b = st.Pop();
+            double a = st.Pop();
+            double res;
 
-            st.add(res);
+            if (pf[i] == '+') res = a + b;
+            else if (pf[i] == '-') res = a - b;
+            else if (pf[i] == '*') res = a * b;
+            else if (pf[i] == '/') res = a / b;
+
+            st.Push(res);
         }
     }
 
-    if (st.isempty()) {
-        r = -2;
-        delete[] postfix;
-        return 0;
-    }
-
-    double finalResult = st.peek();
-    st.udalit();
-
-    delete[] postfix;
-    return finalResult;
+    double res = st.Pop();
+    delete[] pf;
+    return res;
 }
