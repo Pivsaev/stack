@@ -3,8 +3,8 @@
 
 std::ostream& operator<<(std::ostream& out, const TFormula& form)
 {
-	out << form.str;
-	return out;
+    out << form.str;
+    return out;
 }
 
 std::istream& operator>>(std::istream& in, TFormula& form)
@@ -42,7 +42,7 @@ bool isdigit(char c)
     if ((c != '1') && (c != '2') && (c != '3') && (c != '4') &&
         (c != '5') && (c != '6') && (c != '7') && (c != '8') &&
         (c != '9') && (c != '0')) {
-        res =  false;
+        res = false;
     }
     return res;
 }
@@ -50,7 +50,7 @@ bool isdigit(char c)
 bool isop(char c)
 {
     bool res = false;
-    if ((c == '+') || (c == '-') || (c == '*') || (c == '/')){
+    if ((c == '+') || (c == '-') || (c == '*') || (c == '/')) {
         res = true;
     }
     return res;
@@ -65,12 +65,17 @@ bool isbracket(char c)
     return res;
 }
 
+bool isletter(char c)
+{
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+
 int priority(char op)
 {
-        if (op == '+' || op == '-') return 1;
-        if (op == '*' || op == '/') return 2;
-        if (op == '^') return 3;
-        return 0;
+    if (op == '+' || op == '-') return 1;
+    if (op == '*' || op == '/') return 2;
+    if (op == '^') return 3;
+    return 0;
 }
 
 TFormula::TFormula(char* _str)
@@ -120,7 +125,7 @@ TFormula TFormula::operator=(const TFormula& _str)
     return *this;
 }
 
-TFormula::TFormula():str(nullptr) {}
+TFormula::TFormula() :str(nullptr) {}
 
 int TFormula::checkbrackets(int arr[], int& n)
 {
@@ -130,10 +135,12 @@ int TFormula::checkbrackets(int arr[], int& n)
     }
     TDynamicStack<int> stack;
     int len = strlen(str);
-
+    int nomer_skobki = 1;
     for (int i = 0; i < len; i++) {
         if (str[i] == '(') {
             stack.Push(i);
+            std::cout << "скобка(открывающая) по счету" << nomer_skobki << std::endl;
+            nomer_skobki++;
         }
         else if (str[i] == ')') {
             if (stack.IsEmpty()) {
@@ -141,6 +148,8 @@ int TFormula::checkbrackets(int arr[], int& n)
             }
             else {
                 stack.Pop();
+                std::cout << "скобка(закрывающая) по счету" << nomer_skobki << std::endl;
+                nomer_skobki++;
             }
         }
     }
@@ -154,6 +163,7 @@ char* TFormula::Postfix()
 {
     int errorPositions[100];
     int errorCount = 0;
+    std::cout << "Таблица скобок:"<< std::endl;
     if (checkbrackets(errorPositions, errorCount) != 0) {
         int expt = 1;
         throw expt;
@@ -164,22 +174,25 @@ char* TFormula::Postfix()
     char* result = new char[maxSize];
     int resultIndex = 0;
     bool predetoop = false;
-
+    
     for (int i = 0; i < len; i++) {
         char c = str[i];
         if (c == ' ') continue;
 
-        if (isdigit(c) || c == '.') {
-            bool tochka_bila = (c == '.');
-            bool cifra_bila = isdigit(c);
-            while (i < len && (isdigit(str[i]) || str[i] == '.')) {
+        if (isdigit(c) || c == '.' ||isletter(c)) {
+            bool tochka_bila = false;
+            bool cifra_bila = false;
+            bool bukva_bila = false;
+            while (i < len && (isdigit(str[i]) || str[i] == '.' || isletter(str[i]))) {
                 if (resultIndex >= maxSize - 1) {
                     delete[] result;
                     int expt = 5;
                     throw expt;
                 }
-
-                if (str[i] == '.') {
+                if (isdigit(str[i])) {
+                    cifra_bila = true;
+                }
+                else if (str[i] == '.') {
                     if (tochka_bila) {
                         delete[] result;
                         int expt = 2;
@@ -187,16 +200,17 @@ char* TFormula::Postfix()
                     }
                     tochka_bila = true;
                 }
-                else {
-                    cifra_bila = true;
+                else if (isletter(str[i])) {
+                    bukva_bila = true;
                 }
-
                 result[resultIndex++] = str[i++];
             }
-            if (!cifra_bila) {
-                delete[] result;
-                int expt = 3;
-                throw expt;
+            if (!bukva_bila) {
+                if (!cifra_bila) {
+                    delete[] result;
+                    int expt = 3;
+                    throw expt;
+                }
             }
 
             if (resultIndex >= maxSize - 1) {
@@ -295,7 +309,7 @@ double TFormula::calculate(int& r)
 {
     r = 0;
     char* pf = Postfix();
-
+    std::cout << pf;
     TDynamicStack<double> st(strlen(pf) + 1);
 
     for (int i = 0; i < strlen(pf); i++) {
@@ -330,13 +344,20 @@ double TFormula::calculate(int& r)
             if (pf[i] == '+') res = a + b;
             else if (pf[i] == '-') res = a - b;
             else if (pf[i] == '*') res = a * b;
-            else if (pf[i] == '/') res = a / b;
-
+            else if (pf[i] == '/') {
+                if (b == 0) {
+                    int expt = 7;
+                    throw expt;
+                }
+                res = a / b;
+            }
             st.Push(res);
         }
     }
-
     double res = st.Pop();
+    if ((res < 1e-9)||(res*-1 < 1e-9)) {
+        res = 0;
+    }
     delete[] pf;
     return res;
 }
