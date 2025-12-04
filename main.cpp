@@ -3,15 +3,14 @@
 #include "TFormula.h"
 
 int main() {
+    setlocale(LC_ALL, "Russian");
     TFormula f;
     std::cin >> f;
     try {
-        char* postfix = f.Postfix();
+
         int r = 0;
-        std::cout << postfix;
         double result = f.calculate(r);
         std::cout << " = " << result;
-        delete[] postfix;
     }
     catch (int expt) {
         if (expt == 1) {
@@ -31,6 +30,9 @@ int main() {
         }
         if (expt == 6) {
             std::cout << "два оператора подряд";
+        }
+        if (expt == 7) {
+            std::cout << "деление на 0";
         }
     }
 }
