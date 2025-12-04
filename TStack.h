@@ -1,55 +1,52 @@
 #include <iostream>
-const int max = 1000;
+
 template<typename T>
-class TStack
+class TDynamicStack
 {
-	T arr[max];
-	int top;
+    int top;
+    size_t memSize;
+    T* pMem;
+
+    void resize() {
+        size_t newSize = memSize * 2;
+        T* newMem = new T[newSize];
+        for (int i = 0; i <= top; i++) {
+            newMem[i] = pMem[i];
+        }
+        delete[] pMem;
+        pMem = newMem;
+        memSize = newSize;
+    }
+
 public:
-	TStack();
-	void add(T el);
-	void udalit();
-	int isempty();
-	int isfull();
-	T peek();
+    TDynamicStack(size_t _memSize = 10) : top(-1), memSize(_memSize), pMem(new T[memSize]) {}
+    ~TDynamicStack() {delete[] pMem;}
+    TDynamicStack(const TDynamicStack& other) : top(other.top), memSize(other.memSize), pMem(new T[memSize]) {
+        for (int i = 0; i <= top; i++) {
+            pMem[i] = other.pMem[i];
+        }
+    }
+    TDynamicStack& operator=(const TDynamicStack& other) {
+        if (this != &other) {
+            delete[] pMem;
+            top = other.top;
+            memSize = other.memSize;
+            pMem = new T[memSize];
+            for (int i = 0; i <= top; i++) {
+                pMem[i] = other.pMem[i];
+            }
+        }
+        return *this;
+    }
+    size_t size() const {return top + 1;}
+    bool IsEmpty() const {return top == -1;}
+    bool IsFull() const {return top == static_cast<int>(memSize) - 1;}
+    T Pop() {return pMem[top--];}
+    void Push(const T& val) {
+        if (IsFull()) {
+            resize();
+        }
+        pMem[++top] = val;
+    }
+    T Peek() const {return pMem[top];}
 };
-
-template<typename T>
-TStack<T>::TStack() : top(-1) {}
-
-template<typename T>
-void TStack<T>::add(T el)
-{
-    if (!isfull()) {
-        arr[++top] = el;
-    }
-}
-
-template<typename T>
-void TStack<T>::udalit()
-{
-    if (!isempty()) {
-        top--;
-    }
-}
-
-template<typename T>
-int TStack<T>::isempty()
-{
-    return top == -1;
-}
-
-template<typename T>
-int TStack<T>::isfull()
-{
-    return top == max - 1;
-}
-
-template<typename T>
-T TStack<T>::peek()
-{
-    if (!isempty()) {
-        return arr[top];
-    }
-    return T();
-}
