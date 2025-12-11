@@ -130,31 +130,39 @@ TFormula::TFormula() :str(nullptr) {}
 int TFormula::checkbrackets(int arr[], int& n)
 {
     n = 0;
-    if (!str) {
-        return n;
-    }
-    TDynamicStack<int> stack;
+    if (!str) return n;
+    TDynamicStack<int> stack_num;
+    TDynamicStack<int> stack_pos;
+    int bracket_num = 1;
     int len = strlen(str);
-    int nomer_skobki = 1;
+    std::cout << "Таблица скобок:" << std::endl;
+    std::cout << "Открывающие   Закрывающие" << std::endl;
+    std::cout << "№    Позиция   Позиция" << std::endl;
+
     for (int i = 0; i < len; i++) {
         if (str[i] == '(') {
-            stack.Push(i);
-            std::cout << "скобка(открывающая) по счету" << nomer_skobki << std::endl;
-            nomer_skobki++;
+            stack_num.Push(bracket_num);
+            stack_pos.Push(i);
+            bracket_num++;
         }
         else if (str[i] == ')') {
-            if (stack.IsEmpty()) {
+            if (stack_num.IsEmpty()) {
                 arr[n++] = i;
+                std::cout << bracket_num << "               " << i << " (нет открывающей)" << std::endl;
+                bracket_num++;
             }
             else {
-                stack.Pop();
-                std::cout << "скобка(закрывающая) по счету" << nomer_skobki << std::endl;
-                nomer_skobki++;
+                int num = stack_num.Pop();
+                int pos = stack_pos.Pop();
+                std::cout << num << "    " << pos << "         " << i << std::endl;
             }
         }
     }
-    while (!stack.IsEmpty()) {
-        arr[n++] = stack.Pop();
+    while (!stack_num.IsEmpty()) {
+        int num = stack_num.Pop();
+        int pos = stack_pos.Pop();
+        arr[n++] = pos;
+        std::cout << num << "    " << pos << "          (нет закрывающей)" << std::endl;
     }
     return n;
 }
@@ -163,7 +171,6 @@ char* TFormula::Postfix()
 {
     int errorPositions[100];
     int errorCount = 0;
-    std::cout << "Таблица скобок:"<< std::endl;
     if (checkbrackets(errorPositions, errorCount) != 0) {
         int expt = 1;
         throw expt;
@@ -174,12 +181,12 @@ char* TFormula::Postfix()
     char* result = new char[maxSize];
     int resultIndex = 0;
     bool predetoop = false;
-    
+
     for (int i = 0; i < len; i++) {
         char c = str[i];
         if (c == ' ') continue;
 
-        if (isdigit(c) || c == '.' ||isletter(c)) {
+        if (isdigit(c) || c == '.' || isletter(c)) {
             bool tochka_bila = false;
             bool cifra_bila = false;
             bool bukva_bila = false;
@@ -310,6 +317,13 @@ double TFormula::calculate(int& r)
     r = 0;
     char* pf = Postfix();
     std::cout << pf;
+    for (int j = 0; j < strlen(pf); j++) {
+        if (isletter(pf[j])) {
+            delete[] pf;
+            int expt = 8;
+            throw expt;
+        }
+    }
     TDynamicStack<double> st(strlen(pf) + 1);
 
     for (int i = 0; i < strlen(pf); i++) {
@@ -355,7 +369,7 @@ double TFormula::calculate(int& r)
         }
     }
     double res = st.Pop();
-    if ((res < 1e-9)||(res*-1 < 1e-9)) {
+    if ((res < 1e-9) || (res * -1 < 1e-9)) {
         res = 0;
     }
     delete[] pf;
