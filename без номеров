@@ -131,39 +131,33 @@ int TFormula::checkbrackets(int arr[], int& n)
 {
     n = 0;
     if (!str) return n;
-
-    TDynamicStack<int> stack;  // Стек для позиций открывающих скобок
+    TDynamicStack<int> stack;
     int len = strlen(str);
-
     std::cout << "Таблица скобок:" << std::endl;
     std::cout << "Открывающие   Закрывающие" << std::endl;
-    std::cout << "Позиция       Позиция" << std::endl;
-
+    int nomer_skobki = 0;
     for (int i = 0; i < len; i++) {
         if (str[i] == '(') {
-            stack.Push(i);  // Сохраняем позицию открывающей
+            nomer_skobki++;
+            stack.Push(nomer_skobki); 
         }
         else if (str[i] == ')') {
+            nomer_skobki++;
             if (stack.IsEmpty()) {
-                // Лишняя закрывающая
-                arr[n++] = i;
-                std::cout << "              " << i << " (нет открывающей)" << std::endl;
+                arr[n++] = nomer_skobki;
+                std::cout << "              " << nomer_skobki << " (нет открывающей)" << std::endl;
             }
             else {
-                // Нашли пару
                 int open_pos = stack.Pop();
-                std::cout << open_pos << "             " << i << std::endl;
+                std::cout << open_pos << "             " << nomer_skobki << std::endl;
             }
         }
     }
-
-    // Незакрытые открывающие скобки
     while (!stack.IsEmpty()) {
         int open_pos = stack.Pop();
         arr[n++] = open_pos;
         std::cout << open_pos << "              (нет закрывающей)" << std::endl;
     }
-
     return n;
 }
 
@@ -172,8 +166,7 @@ char* TFormula::Postfix()
     int errorPositions[100];
     int errorCount = 0;
     if (checkbrackets(errorPositions, errorCount) != 0) {
-        int expt = 1;
-        throw expt;
+        throw 1;
     }
     int len = strlen(str);
     TDynamicStack<char> st(len + 1);
@@ -181,20 +174,23 @@ char* TFormula::Postfix()
     char* result = new char[maxSize];
     int resultIndex = 0;
     bool predetoop = false;
-
+    bool predetooperand = false;
     for (int i = 0; i < len; i++) {
         char c = str[i];
         if (c == ' ') continue;
-
         if (isdigit(c) || c == '.' || isletter(c)) {
             bool tochka_bila = false;
             bool cifra_bila = false;
             bool bukva_bila = false;
+            if (predetooperand) {
+                delete[] result;
+                throw 8; 
+            }
+
             while (i < len && (isdigit(str[i]) || str[i] == '.' || isletter(str[i]))) {
                 if (resultIndex >= maxSize - 1) {
                     delete[] result;
-                    int expt = 5;
-                    throw expt;
+                    throw 5; 
                 }
                 if (isdigit(str[i])) {
                     cifra_bila = true;
@@ -202,8 +198,7 @@ char* TFormula::Postfix()
                 else if (str[i] == '.') {
                     if (tochka_bila) {
                         delete[] result;
-                        int expt = 2;
-                        throw expt;
+                        throw 2;
                     }
                     tochka_bila = true;
                 }
@@ -215,19 +210,17 @@ char* TFormula::Postfix()
             if (!bukva_bila) {
                 if (!cifra_bila) {
                     delete[] result;
-                    int expt = 3;
-                    throw expt;
+                    throw 3;
                 }
             }
-
             if (resultIndex >= maxSize - 1) {
                 delete[] result;
-                int expt = 5;
-                throw expt;
+                throw 5; 
             }
             result[resultIndex++] = ' ';
             i--;
             predetoop = false;
+            predetooperand = true;
         }
         else if (isop(c)) {
             if (c == '-' && (i == 0 || str[i - 1] == '(' || isop(str[i - 1]))) {
@@ -237,67 +230,89 @@ char* TFormula::Postfix()
                     priority(st.Peek()) >= priority(c)) {
                     if (resultIndex >= maxSize - 2) {
                         delete[] result;
-                        int expt = 5;
-                        throw expt;
+                        throw 5;
                     }
                     result[resultIndex++] = st.Pop();
                     result[resultIndex++] = ' ';
                 }
                 st.Push(c);
                 predetoop = true;
+                predetooperand = false;
             }
             else {
                 if (predetoop) {
                     delete[] result;
-                    int expt = 6;
-                    throw expt;
+                    throw 6;
+                }
+                if (!predetooperand) {
+                    delete[] result;
+                    throw 9;
                 }
                 while (!st.IsEmpty() && isop(st.Peek()) &&
                     priority(st.Peek()) >= priority(c)) {
                     if (resultIndex >= maxSize - 2) {
                         delete[] result;
-                        int expt = 5;
-                        throw expt;
+                        throw 5;
                     }
                     result[resultIndex++] = st.Pop();
                     result[resultIndex++] = ' ';
                 }
                 st.Push(c);
                 predetoop = true;
+                predetooperand = false;
             }
         }
         else if (c == '(') {
+            if (predetooperand) {
+                delete[] result;
+                throw 8;
+            }
             st.Push(c);
+            predetooperand = false;
         }
         else if (c == ')') {
+            if (predetoop) {
+                delete[] result;
+                throw 10;
+            }
             while (!st.IsEmpty() && st.Peek() != '(') {
                 if (resultIndex >= maxSize - 2) {
                     delete[] result;
-                    int expt = 5;
-                    throw expt;
+                    throw 5;
                 }
                 result[resultIndex++] = st.Pop();
                 result[resultIndex++] = ' ';
             }
-            if (!st.IsEmpty()) {
-                st.Pop();
+            if (st.IsEmpty()) {
+                delete[] result;
+                throw 1;
             }
+            st.Pop();
+            predetooperand = true;
         }
         else {
             delete[] result;
-            int expt = 4;
-            throw expt;
+            throw 4;
         }
     }
+    if (predetoop) {
+        delete[] result;
+        throw 11;
+    }
+
     while (!st.IsEmpty()) {
+        if (st.Peek() == '(') {
+            delete[] result;
+            throw 1;
+        }
         if (resultIndex >= maxSize - 2) {
             delete[] result;
-            int expt = 5;
-            throw expt;
+            throw 5;
         }
         result[resultIndex++] = st.Pop();
         result[resultIndex++] = ' ';
     }
+
     if (resultIndex > 0) {
         if (result[resultIndex - 1] == ' ') {
             result[resultIndex - 1] = '\0';
@@ -309,6 +324,7 @@ char* TFormula::Postfix()
     else {
         result[0] = '\0';
     }
+
     return result;
 }
 
@@ -316,16 +332,14 @@ double TFormula::calculate(int& r)
 {
     r = 0;
     char* pf = Postfix();
-    std::cout << pf;
+    std::cout << "Постфиксная форма: " << pf << std::endl;
     for (int j = 0; j < strlen(pf); j++) {
         if (isletter(pf[j])) {
             delete[] pf;
-            int expt = 8;
-            throw expt;
+            throw 4;
         }
     }
     TDynamicStack<double> st(strlen(pf) + 1);
-
     for (int i = 0; i < strlen(pf); i++) {
         if (pf[i] == ' ') continue;
 
@@ -351,6 +365,10 @@ double TFormula::calculate(int& r)
             st.Push(n);
         }
         else if (isop(pf[i])) {
+            if (st.size() < 2) {
+                delete[] pf;
+                throw 12;
+            }
             double b = st.Pop();
             double a = st.Pop();
             double res;
@@ -360,16 +378,20 @@ double TFormula::calculate(int& r)
             else if (pf[i] == '*') res = a * b;
             else if (pf[i] == '/') {
                 if (b == 0) {
-                    int expt = 7;
-                    throw expt;
+                    delete[] pf;
+                    throw 7;
                 }
                 res = a / b;
             }
             st.Push(res);
         }
     }
+    if (st.size() != 1) {
+        delete[] pf;
+        throw 13;
+    }
     double res = st.Pop();
-    if ((res < 1e-9) || (res * -1 < 1e-9)) {
+    if (fabs(res) < 1e-9) {
         res = 0;
     }
     delete[] pf;
