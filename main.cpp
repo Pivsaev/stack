@@ -3,11 +3,9 @@
 #include "TFormula.h"
 
 int main() {
-    setlocale(LC_ALL, "Russian");
     TFormula f;
     std::cin >> f;
     try {
-
         int r = 0;
         double result = f.calculate(r);
         std::cout << " = " << result;
@@ -16,23 +14,41 @@ int main() {
         if (expt == 1) {
             std::cout << "Ошибка в скобках";
         }
-        if (expt == 2) {
+        else if (expt == 2) {
             std::cout << "две точки в числе";
         }
-        if (expt == 3) {
+        else if (expt == 3) {
             std::cout << "точка без цифр";
         }
-        if (expt == 4) {
+        else if (expt == 4) {
             std::cout << "неизвестный символ";
         }
-        if (expt == 5) {
+        else if (expt == 5) {
             std::cout << "переполнение буфера";
         }
-        if (expt == 6) {
+        else if (expt == 6) {
             std::cout << "два оператора подряд";
         }
-        if (expt == 7) {
+        else if (expt == 7) {
             std::cout << "деление на 0";
+        }
+        else if (expt == 8) {
+            std::cout << "пропущен оператор";
+        }
+        else if (expt == 9) {
+            std::cout << "оператор без операнда слева";
+        }
+        else if (expt == 10) {
+            std::cout << "оператор перед закрывающей скобкой";
+        }
+        else if (expt == 11) {
+            std::cout << "оператор в конце выражения";
+        }
+        else if (expt == 12) {
+            std::cout << "недостаточно операндов";
+        }
+        else if (expt == 13) {
+            std::cout << "ошибка в вычислении";
         }
     }
 }
